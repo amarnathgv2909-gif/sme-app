@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Inter', sans-serif; }
+.font-display { font-family: 'Fraunces', serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+.frame-tile { position: relative; transition: transform .15s ease, box-shadow .15s ease; }
+.frame-tile:hover { transform: translateY(-2px); }
+.corner-mark { position: relative; }
+.corner-mark::before, .corner-mark::after {
+  content: ""; position: absolute; width: 10px; height: 10px;
+  border-color: #A8762F; opacity: 0; transition: opacity .15s ease;
+}
+.corner-mark::before { top: -4px; left: -4px; border-top: 2px solid; border-left: 2px solid; }
+.corner-mark::after { bottom: -4px; right: -4px; border-bottom: 2px solid; border-right: 2px solid; }
+.corner-mark:hover::before, .corner-mark:hover::after { opacity: 1; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #E3D8C4; border-radius: 4px; }
+
+@keyframes riseIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.rise-in { animation: riseIn .25s ease both; }
