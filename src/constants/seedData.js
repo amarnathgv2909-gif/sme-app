@@ -51,6 +51,9 @@ export const CUSTOMER_SEED = [
 
 function makeBillSeed(products, customers) {
   const pick = (i) => products[i % products.length];
+  let gstCounter = 0;
+  let nonGstCounter = 0;
+
   const mk = (dayOffset, itemsIdx, custIdx, mode, gst) => {
     const items = itemsIdx.map((idx) => {
       const p = pick(idx);
@@ -62,9 +65,10 @@ function makeBillSeed(products, customers) {
     const gstAmount = gst ? Math.round((subtotal - discountAmount) * 0.18) : 0;
     const total = subtotal - discountAmount + gstAmount;
     const d = new Date(Date.now() - dayOffset * 86400000);
+    const sequence = gst ? ++gstCounter : ++nonGstCounter;
     return {
       id: uid("bill"),
-      billNo: `${gst ? "GST" : "SME"}-${1000 + Math.floor(Math.random() * 900)}`,
+      billNo: `${gst ? "GST" : "SME"}-${String(sequence).padStart(3, "0")}`,
       date: d.toISOString(),
       customerId: customers[custIdx].id,
       customerName: customers[custIdx].name,

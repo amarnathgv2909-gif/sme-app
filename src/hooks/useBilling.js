@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { effectivePrice, calculateTotals, completeBill, getBillCount } from "../services/billingService.js";
+import { effectivePrice, calculateTotals, completeBill, getNextBillSequence } from "../services/billingService.js";
 import { useSettings } from "./useSettings.js";
 
 /**
@@ -86,7 +86,7 @@ export function useBilling({ products, customer, user }) {
     const bill = completeBill({
       cart, customer, discountType, discountValue, paymentMode,
       gstEnabled, gstPercent: settings.gstPercent, createdBy: user.name,
-      billCounter: getBillCount(),
+      billSequence: getNextBillSequence(gstEnabled),
     });
     setCart([]); setDiscountValue(0); setDiscountType("percent"); setPaymentMode("Cash");
     return bill;

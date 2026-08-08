@@ -19,16 +19,28 @@ import { inr } from "../../utils/format.js";
 export default function BillingPage() {
   const { user, isSuper } = useAuth();
   const { products, categories } = useCatalog();
-  const { customers, addCustomer } = useCustomers();
+  const { customers, addCustomer, updateCustomer } = useCustomers();
 
   const [catFilter, setCatFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [customerQuery, setCustomerQuery] = useState("");
   const [customerId, setCustomerId] = useState(customers[customers.length - 1]?.id || "");
   const [editingIdx, setEditingIdx] = useState(null);
   const [quickCustOpen, setQuickCustOpen] = useState(false);
   const [invoice, setInvoice] = useState(null);
 
   const customer = customers.find((c) => c.id === customerId) || null;
+  const selectedCustomer = customers.find((c) => c.id === customerId) || null;
+  const filteredCustomers = useMemo(() => {
+    const q = customerQuery.trim().toLowerCase();
+    const matches = q
+      ? customers.filter((c) => [c.name, c.phone].join(" ").toLowerCase().includes(q))
+      : customers;
+    if (selectedCustomer && !matches.some((c) => c.id === selectedCustomer.id)) {
+      return [selectedCustomer, ...matches];
+    }
+    return matches;
+  }, [customers, customerQuery, selectedCustomer]);
 
   const billing = useBilling({ products, customer, user });
   const {
@@ -46,7 +58,15 @@ export default function BillingPage() {
 
   const handleCompleteBill = () => {
     const bill = finalizeBill();
-    if (bill) setInvoice(bill);
+    if (!bill) return;
+
+    if (customer?.id && paymentMode === "Credit") {
+      updateCustomer(customer.id, {
+        outstanding: (customer.outstanding || 0) + bill.total,
+      });
+    }
+
+    setInvoice(bill);
   };
 
   const handleAddQuickCustomer = (fields) => {
@@ -58,7 +78,7 @@ export default function BillingPage() {
   return (
     <div>
       <TopBar title="Billing" subtitle="Tap a frame to add one, or type the quantity for bulk orders — prices auto-apply from the customer's price list." />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 16, alignItems: "start" }}>
+      <div className="billing-grid">
         {/* Product grid */}
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
@@ -87,19 +107,35 @@ export default function BillingPage() {
         </div>
 
         {/* Cart */}
-        <Card style={{ padding: 16, position: "sticky", top: 16 }}>
+        <Card className="billing-sidebar" style={{ padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: C.ink, marginBottom: 10, display: "flex", alignItems: "center", gap: 7 }}>
             <ShoppingCart size={16} /> Current Bill
           </div>
 
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.inkSoft, marginBottom: 5 }}>CUSTOMER</div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <select style={inputStyle} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-                {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <Btn variant="outline" size="sm" icon={Plus} onClick={() => setQuickCustOpen(true)}>New</Btn>
+            <div style={{ position: "relative", marginBottom: 8 }}>
+              <Search size={16} color={C.inkFaint} style={{ position: "absolute", left: 12, top: 12 }} />
+              <input
+                style={{ ...inputStyle, paddingLeft: 34 }}
+                placeholder="Search customer name or phone…"
+                value={customerQuery}
+                onChange={(e) => setCustomerQuery(e.target.value)}
+              />
             </div>
+            <div className="customer-search-row" style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+              <select style={{ ...inputStyle, flex: 1 }} value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+                {filteredCustomers.length === 0 && <option value="">No matching customer</option>}
+                {filteredCustomers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` ${c.phone}` : ""}</option>)}
+              </select>
+              <Btn variant="outline" size="sm" icon={Plus} onClick={() => setQuickCustOpen(true)} style={{ flex: "0 0 auto" }}>New</Btn>
+            </div>
+            {customer?.outstanding > 0 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: C.rustBg, color: C.rust, borderRadius: 10, fontSize: 12 }}>
+                <span>Outstanding balance will be added to this bill</span>
+                <span className="font-mono">{inr(customer.outstanding)}</span>
+              </div>
+            )}
           </div>
 
           <div className="scrollbar-thin" style={{ maxHeight: 260, overflowY: "auto", marginBottom: 10, borderTop: `1px solid ${C.line}`, borderBottom: cart.length ? `1px solid ${C.line}` : "none" }}>

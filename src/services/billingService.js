@@ -18,29 +18,39 @@ export function calculateTotals({ cart, discountType, discountValue, gstEnabled,
   return { subtotal, discountAmount, gstAmount, total };
 }
 
+function formatBillNumber(gstEnabled, sequence) {
+  const prefix = gstEnabled ? "GST" : "SME";
+  return `${prefix}-${String(sequence).padStart(3, "0")}`;
+}
+
+export function getNextBillSequence(gstEnabled) {
+  return (gstEnabled ? gstBillsDb.getAll().length : nonGstBillsDb.getAll().length) + 1;
+}
+
 /**
  * Saves a completed bill into the correct table — gstBillsDb when GST was
  * applied, nonGstBillsDb otherwise — deducts stock, and returns the saved
  * bill (with its billType) for the invoice preview.
  */
-export function completeBill({ cart, customer, discountType, discountValue, paymentMode, gstEnabled, gstPercent, createdBy, billCounter }) {
+export function completeBill({ cart, customer, discountType, discountValue, paymentMode, gstEnabled, gstPercent, createdBy, billSequence }) {
   const { subtotal, discountAmount, gstAmount, total } = calculateTotals({ cart, discountType, discountValue, gstEnabled, gstPercent });
   const table = gstEnabled ? gstBillsDb : nonGstBillsDb;
-  const prefix = gstEnabled ? "GST" : "SME";
-  
-  // Add outstanding balance to total
+  const billNo = formatBillNumber(gstEnabled, billSequence);
+
   const outstandingAmount = customer?.outstanding || 0;
   const totalWithOutstanding = total + outstandingAmount;
 
   const bill = {
     id: uid("bill"),
-    billNo: `${prefix}-${1000 + billCounter + Math.floor(Math.random() * 90)}`,
+    billNo,
     date: new Date().toISOString(),
     customerId: customer?.id || null,
     customerName: customer?.name || "Walk-in Customer",
     customerPhone: customer?.phone || "",
     customerWhatsApp: customer?.whatsapp || customer?.phone || "",
-    items: cart.map((i) => ({ productId: i.productId, name: i.name, size: i.size, colour: i.colour, price: i.price, qty: i.qty, lineTotal: i.price * i.qty })),
+    customerAddress: customer?.address || "",
+    customerGst: customer?.gstNumber || "",
+    items: cart.map((i) => ({ productId: i.productId, name: i.name, hsn: i.hsn || "", size: i.size, colour: i.colour, price: i.price, qty: i.qty, lineTotal: i.price * i.qty })),
     subtotal,
     discountType,
     discountValue: Number(discountValue) || 0,

@@ -21,3 +21,47 @@ body { margin: 0; font-family: 'Inter', sans-serif; }
 
 @keyframes riseIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .rise-in { animation: riseIn .25s ease both; }
+
+@page { size: A4 portrait; margin: 10mm; }
+
+@media print {
+  body *:not(.invoice-print-page):not(.invoice-print-page *) { display: none !important; }
+  .invoice-print-page { display: block !important; position: absolute; top: 0; left: 0; width: 100% !important; border: none !important; margin: 0; }
+  .invoice-print-page * { visibility: visible !important; }
+}
+
+.billing-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+  align-items: start;
+}
+.billing-sidebar {
+  position: sticky;
+  top: 16px;
+}
+
+@media (max-width: 980px) {
+  .billing-grid {
+    grid-template-columns: 1fr;
+  }
+  .billing-sidebar {
+    position: static;
+    top: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .billing-grid {
+    gap: 12px;
+  }
+  .customer-search-row,
+  .billing-grid input,
+  .billing-grid select,
+  .billing-grid button {
+    width: 100%;
+  }
+  .billing-grid .scrollbar-thin {
+    max-height: 220px;
+  }
+}

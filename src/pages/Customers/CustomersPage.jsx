@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Search, Plus, Pencil, IndianRupee, History, Trash2 } from "lucide-react";
 import { C } from "../../constants/colors.js";
 import { Card } from "../../components/common/Card.jsx";
+import { Modal } from "../../components/common/Modal.jsx";
 import { Btn } from "../../components/common/Button.jsx";
 import { inputStyle } from "../../components/common/Field.jsx";
 import { TopBar } from "../../components/layout/TopBar.jsx";
@@ -20,6 +21,8 @@ export default function CustomersPage() {
   const [formModal, setFormModal] = useState(null);
   const [pricingModal, setPricingModal] = useState(null);
   const [historyModal, setHistoryModal] = useState(null);
+  const [payModal, setPayModal] = useState(null);
+  const [payValue, setPayValue] = useState("");
 
   const filtered = customers.filter((c) => !query.trim() || [c.name, c.phone].join(" ").toLowerCase().includes(query.toLowerCase()));
 
@@ -67,8 +70,13 @@ export default function CustomersPage() {
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                 <Btn size="sm" variant="subtle" icon={History} style={{ flex: 1 }} onClick={() => setHistoryModal(c)}>History</Btn>
+                {c.outstanding > 0 && (
+                  <Btn size="sm" variant="outline" icon={IndianRupee} style={{ flex: 1 }} onClick={() => { setPayModal(c); setPayValue(c.outstanding?.toString() || ""); }}>
+                    Pay Outstanding
+                  </Btn>
+                )}
                 {isSuper && <Btn size="sm" variant="subtle" icon={IndianRupee} style={{ flex: 1 }} onClick={() => setPricingModal(c)}>Prices</Btn>}
                 {isSuper && <Btn size="sm" variant="danger" icon={Trash2} style={{ flex: 1 }} onClick={() => {
                   if (window.confirm(`Delete customer ${c.name}? This cannot be undone.`)) removeCustomer(c.id);
@@ -90,6 +98,41 @@ export default function CustomersPage() {
           history={getPurchaseHistory(historyModal.id)}
           stats={getCustomerStats(historyModal.id)}
           onClose={() => setHistoryModal(null)} />
+      )}
+      {payModal && (
+        <Modal title={`Pay Outstanding for ${payModal.name}`} onClose={() => setPayModal(null)} width={420}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: C.inkFaint, marginBottom: 6 }}>Outstanding amount</div>
+            <div className="font-mono" style={{ fontSize: 18, fontWeight: 700, color: C.rust }}>{inr(payModal.outstanding)}</div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: C.inkFaint, marginBottom: 6 }}>Amount to pay</div>
+            <input
+              style={inputStyle}
+              type="number"
+              min="0"
+              max={payModal.outstanding}
+              value={payValue}
+              onChange={(e) => setPayValue(e.target.value)}
+            />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn style={{ flex: 1 }} onClick={() => setPayModal(null)}>Cancel</Btn>
+            <Btn
+              style={{ flex: 1 }}
+              disabled={!payValue || Number(payValue) <= 0}
+              onClick={() => {
+                const amount = Math.min(Math.max(Number(payValue) || 0, 0), payModal.outstanding);
+                if (amount <= 0) return;
+                updateCustomer(payModal.id, { outstanding: Math.max(0, payModal.outstanding - amount) });
+                setPayModal(null);
+                setPayValue("");
+              }}
+            >
+              Pay
+            </Btn>
+          </div>
+        </Modal>
       )}
     </div>
   );
